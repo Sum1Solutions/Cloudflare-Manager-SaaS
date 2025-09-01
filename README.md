@@ -4,35 +4,35 @@ A web application for managing multiple Cloudflare zones (domains) and their DNS
 
 > **Note**: This is a working tool that's been used with multiple domains in real environments, but it's still evolving. Test thoroughly in your own environment before relying on it.
 
-## 🚀 Deployment Options
+## Deployment Options
 
 ### Option 1: Flask Application (Traditional)
 - Self-hosted Python Flask application
 - SQLite database for local storage
 - Full server control and customization
 
-### Option 2: Cloudflare Pages + D1 (Serverless) ⭐ **Recommended**
+### Option 2: Cloudflare Pages + D1 (Serverless)
 - Serverless deployment on Cloudflare's global network
 - D1 database for edge storage
-- Zero maintenance, automatic scaling, built-in DDoS protection
+- Zero maintenance, automatic scaling
 - Complete Pages migration available in `pages-migration/` directory
 
-## ✨ Features
+## Features
 
-### 🏠 Enhanced Dashboard
-- **Compact Analytics Overview**: 4-card summary with key metrics at page top
-- **Prominent Search**: Enhanced search box (far-left justified) with smooth animations
-- **Multi-Domain Table**: Sortable, searchable table showing all 399+ domains
-- **Real-time Analytics**: 30-day metrics for requests, bandwidth, and threats via GraphQL API
-- **Advanced DataTables**: Custom sorting, pagination (10/25/50/100/All), responsive design
+### Dashboard
+- Analytics overview with key metrics
+- Search interface for finding domains quickly
+- Sortable, searchable table for all domains
+- Real-time analytics data via GraphQL API
+- Custom sorting, pagination, responsive design
 
-### 🗄️ Database Administration
-- **Dual-View Interface**: Toggle between Tables and Schema views
-- **Schema Explorer**: Detailed column information, data types, constraints, primary keys
-- **Table Metadata**: Row counts, last updated timestamps, sortable table listings
-- **Collapsible Statistics**: Optional detailed analytics section
+### Database Administration
+- Toggle between Tables and Schema views
+- Detailed column information, data types, constraints
+- Row counts, timestamps, sortable table listings
+- Optional detailed analytics section
 
-### 🔧 Advanced Features
+### Other Features
 - **Background Synchronization**: Async sync with real-time progress tracking and cancellation
 - **Theme Support**: Dark/light mode toggle with persistent preferences
 - **Configurable Authentication**: Choose between Auth0 OAuth or Cloudflare Access zero-trust authentication
@@ -40,11 +40,6 @@ A web application for managing multiple Cloudflare zones (domains) and their DNS
 - **Responsive Design**: Bootstrap 5 with mobile-first approach
 - **Tested**: Used with multiple domains in development and real environments
 
-## Screenshots
-
-The main dashboard shows all domains with their status, plan, analytics data, and management actions:
-
-![Domain Manager Interface](docs/screenshot-dashboard.png)
 
 ## Installation
 
@@ -255,7 +250,7 @@ The application includes error handling and logging. Check `flask_output.log` fo
 
 ### Performance Tips
 
-- **Large domain counts**: Sync operations may take several minutes for 400+ domains
+- **Large domain counts**: Sync operations may take several minutes for many domains
 - **Rate limiting**: Cloudflare API has rate limits; the app handles this automatically
 - **Browser performance**: Use pagination for large domain lists
 

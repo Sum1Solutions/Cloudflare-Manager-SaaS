@@ -18,7 +18,7 @@ Cloudflare Manager is an opensource web application for managing multiple Cloudf
 - **Database**: Local SQLite with foreign key constraints
 - **Authentication**: Configurable (Auth0 OAuth or Cloudflare Access)
 
-### Pages + D1 Version (Serverless) ⭐ **Primary Focus**
+### Pages + D1 Version (Serverless)
 - **Backend**: Cloudflare Pages Functions (Workers)
 - **Deployment**: Cloudflare's global edge network
 - **Database**: Cloudflare D1 (distributed SQLite)

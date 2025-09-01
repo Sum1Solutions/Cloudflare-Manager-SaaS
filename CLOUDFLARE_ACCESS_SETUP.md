@@ -1,4 +1,4 @@
-# 🚀 Cloudflare Access Setup Guide
+# Cloudflare Access Setup Guide
 
 ## What is Cloudflare Access?
 
@@ -145,7 +145,7 @@ export async function onRequest(context) {
 - Your Access cost = $150/year (50 users free + 50 × $3)
 - **Profit: $850/year**
 
-### 🚀 **User Experience**
+### User Experience
 1. User visits cloudflaremanager.com
 2. Clicks "Sign in with Google"
 3. Instantly authenticated
