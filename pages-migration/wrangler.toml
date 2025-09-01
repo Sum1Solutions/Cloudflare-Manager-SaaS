@@ -1,0 +1,22 @@
+name = "cloudflare-manager"
+compatibility_date = "2023-12-01"
+pages_build_output_dir = "public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cloudflare-manager-db"
+database_id = "1c0d6fdd-54f2-4691-8de7-efeb6201f01d" # Database ID for development
+
+[env.production]
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "cloudflare-manager-db"
+database_id = "" # Add your production database ID
+
+[vars]
+ENVIRONMENT = "development"
+
+# Environment variables (set these in Cloudflare Dashboard)
+# CLOUDFLARE_EMAIL = "your-email@domain.com"
+# CLOUDFLARE_API_KEY = "your-api-key"
+# CLOUDFLARE_ACCOUNT_ID = "your-account-id"

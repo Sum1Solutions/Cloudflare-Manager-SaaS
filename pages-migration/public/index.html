@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Manager</title>
+    
+    <!-- External Styles -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <a class="navbar-brand" href="/">Cloudflare Manager</a>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/database.html">View Database</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="nav-link">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                    <form id="logout-form" method="POST" action="/auth/logout" style="display: none;"></form>
+                </li>
+            </ul>
+            <!-- Theme Toggle -->
+            <div class="theme-switch-wrapper">
+                <i class="fas fa-sun theme-icon"></i>
+                <label class="theme-switch">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="slider"></span>
+                </label>
+                <i class="fas fa-moon theme-icon"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <!-- Header Section -->
+        <div class="card mb-4">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h1 class="mb-0">Domain Manager</h1>
+                    <div class="text-end">
+                        <a href="https://dash.cloudflare.com/" 
+                           target="_blank" 
+                           class="btn btn-warning me-2"
+                           title="Manage domain registration and DNS billing">
+                            <i class="fas fa-globe"></i> Manage Registrar
+                        </a>
+                        <button type="button" class="btn btn-primary" id="sync-btn">
+                            <i class="fas fa-sync-alt"></i> Sync with Cloudflare
+                        </button>
+                        <div id="last-sync" class="small mt-1" style="color: var(--cf-orange); display: none;">
+                            Last synced: <span id="last-sync-time">Never</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Quick Stats -->
+        <div id="db-overview" class="row mb-4" style="display: none;">
+            <!-- Dynamic content loaded via JavaScript -->
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="text-center py-5">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h5>Loading domains...</h5>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="alert alert-danger" style="display: none;">
+            <h5><i class="fas fa-exclamation-triangle"></i> Error Loading Data</h5>
+            <p id="error-message">Failed to load domains. Please try again.</p>
+            <button class="btn btn-outline-danger" onclick="loadDomains()">
+                <i class="fas fa-redo"></i> Retry
+            </button>
+        </div>
+
+        <!-- Domains Table -->
+        <div id="domains-container" class="card" style="display: none;">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="domainsTable" class="table table-hover table-striped mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="sortable">Domain</th>
+                                <th class="sortable">Status</th>
+                                <th class="sortable">Plan</th>
+                                <th class="sortable">Requests (30d)</th>
+                                <th class="sortable">Bandwidth (30d)</th>
+                                <th class="sortable">Threats (30d)</th>
+                                <th class="sortable">Last Modified</th>
+                                <th class="no-sort">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="domains-tbody">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Progress Modal -->
+    <div class="modal fade" id="syncProgressModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-sync-alt me-2"></i>Synchronizing with Cloudflare
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="sync-status mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span id="sync-status-text" class="text-themed fw-semibold">Initializing sync...</span>
+                            <span id="sync-progress-text" class="text-primary fw-bold">0%</span>
+                        </div>
+                        <div class="progress">
+                            <div id="sync-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div id="sync-details" class="mt-3 text-themed">
+                        <!-- Progress details -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Close (Continue in Background)
+                    </button>
+                    <button type="button" class="btn btn-primary" id="sync-close-btn" data-bs-dismiss="modal" disabled style="display: none;">
+                        <i class="fas fa-check me-2"></i>Done
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1055;">
+        <div id="syncCompleteToast" class="toast" role="alert">
+            <div class="toast-header">
+                <i class="fas fa-sync-alt text-success me-2"></i>
+                <strong class="me-auto">Sync Complete</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                Synchronization completed successfully! 
+                <a href="javascript:void(0)" onclick="loadDomains()" class="text-primary fw-bold">Refresh data</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/theme.js"></script>
+</body>
+</html>

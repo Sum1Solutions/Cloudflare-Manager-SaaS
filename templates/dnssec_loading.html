@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block title %}Checking DNSSEC Status{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>Checking DNSSEC Status
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <div class="spinner-border spinner-border-lg text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    
+                    <h6 id="status-text" class="text-themed">Initializing DNSSEC check...</h6>
+                    <p class="text-themed-muted mb-4" id="progress-text">This may take a few minutes for all zones</p>
+                    
+                    <div class="progress mb-3" style="height: 20px;">
+                        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            0%
+                        </div>
+                    </div>
+                    
+                    <div id="details" class="small text-themed">
+                        <!-- Progress details will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    let startTime = Date.now();
+    let progressInterval;
+    
+    // Start the DNSSEC check (non-blocking)
+    $.ajax({
+        url: '/api/check-dnssec',
+        type: 'GET',
+        timeout: 600000, // 10 minute timeout
+        success: function(data) {
+            clearInterval(progressInterval);
+            if (data.success) {
+                // Show completion
+                $('#status-text').text('DNSSEC check completed!');
+                $('#progress-text').text(`Found ${data.without_dnssec} zones without DNSSEC out of ${data.total_checked} total zones`);
+                
+                // Update progress bar to 100%
+                updateProgress(100, 'Complete');
+                
+                // Show results and redirect
+                setTimeout(function() {
+                    showResults(data.zones);
+                }, 1000);
+            } else {
+                showError(data.error || 'Unknown error occurred');
+            }
+        },
+        error: function(xhr, status, error) {
+            clearInterval(progressInterval);
+            if (status === 'timeout') {
+                showError('DNSSEC check timed out. Please try again later.');
+            } else {
+                showError(`Error: ${error}`);
+            }
+        }
+    });
+    
+    // Poll for real-time progress updates
+    progressInterval = setInterval(function() {
+        $.ajax({
+            url: '/api/check-dnssec/progress',
+            type: 'GET',
+            success: function(progress) {
+                if (progress.checking) {
+                    let percentage = 0;
+                    let statusMsg = 'Initializing DNSSEC check...';
+                    
+                    if (progress.total > 0) {
+                        percentage = Math.floor(Math.min(95, (progress.processed / progress.total) * 100));
+                        
+                        if (progress.processed === 0) {
+                            statusMsg = 'Starting DNSSEC check...';
+                        } else {
+                            statusMsg = `Checking: ${progress.current_domain}`;
+                        }
+                    }
+                    
+                    updateProgress(percentage, statusMsg);
+                    
+                    // Real-time details
+                    let elapsed = Math.floor(progress.elapsed_seconds);
+                    let avgTimePerDomain = progress.processed > 0 ? elapsed / progress.processed : 0.5;
+                    let remaining = progress.total > progress.processed ? 
+                        Math.ceil((progress.total - progress.processed) * avgTimePerDomain) : 0;
+                    
+                    let detailsHtml = `
+                        <div><strong>${progress.processed} of ${progress.total} domains checked</strong></div>
+                        <div>${progress.without_dnssec} without DNSSEC found so far</div>
+                    `;
+                    
+                    if (progress.current_domain) {
+                        detailsHtml += `<div class="text-primary">Currently checking: ${progress.current_domain}</div>`;
+                    }
+                    
+                    if (remaining > 60) {
+                        detailsHtml += `<div class="text-themed-muted">About ${Math.ceil(remaining / 60)} minutes remaining</div>`;
+                    } else if (remaining > 0) {
+                        detailsHtml += `<div class="text-themed-muted">Less than a minute remaining</div>`;
+                    }
+                    
+                    if (elapsed > 0) {
+                        detailsHtml += `<div class="text-themed-muted small">Elapsed: ${Math.floor(elapsed / 60)}:${(elapsed % 60).toString().padStart(2, '0')}</div>`;
+                    }
+                    
+                    $('#details').html(detailsHtml);
+                }
+            },
+            error: function() {
+                // Silently fail progress updates - main request will handle errors
+            }
+        });
+    }, 1000); // Poll every second for real-time updates
+    
+    function updateProgress(percentage, text) {
+        $('#progress-bar').css('width', percentage + '%').attr('aria-valuenow', percentage);
+        $('#progress-bar').text(percentage + '%');
+        if (text) {
+            $('#status-text').text(text);
+        }
+        
+        if (percentage >= 100) {
+            clearInterval(progressInterval);
+            $('#progress-bar').removeClass('progress-bar-animated').addClass('bg-success');
+        }
+    }
+    
+    function showResults(zones) {
+        // Count recommendations
+        let highPriority = zones.filter(z => z.dnssec_recommendation === 'Highly Recommended').length;
+        let recommended = zones.filter(z => z.dnssec_recommendation === 'Recommended').length;
+        let consider = zones.filter(z => z.dnssec_recommendation === 'Consider').length;
+        
+        // Create results HTML
+        let resultsHtml = `
+            <div class="alert alert-success">
+                <h6><i class="fas fa-check-circle me-2"></i>DNSSEC Check Complete</h6>
+                <p class="mb-0">Found ${zones.length} zones without DNSSEC enabled.</p>
+                ${highPriority > 0 ? `<small class="d-block mt-2">• ${highPriority} highly recommended (active websites/email)</small>` : ''}
+                ${recommended > 0 ? `<small class="d-block">• ${recommended} recommended (redirects/services)</small>` : ''}
+                ${consider > 0 ? `<small class="d-block">• ${consider} consider enabling</small>` : ''}
+            </div>
+        `;
+        
+        if (zones.length > 0) {
+            // Bulk action controls
+            resultsHtml += `
+                <div class="mb-3 p-3 bg-light rounded">
+                    <h6><i class="fas fa-shield-alt me-2"></i>Bulk Actions</h6>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button onclick="selectByRecommendation('Highly Recommended')" class="btn btn-sm btn-success">
+                            Select High Priority (${highPriority})
+                        </button>
+                        <button onclick="selectByRecommendation('Recommended')" class="btn btn-sm btn-info">
+                            Select Recommended (${recommended})
+                        </button>
+                        <button onclick="selectAll()" class="btn btn-sm btn-secondary">
+                            Select All (${zones.length})
+                        </button>
+                        <button onclick="enableSelectedDNSSEC()" class="btn btn-sm btn-primary" id="enableSelected" disabled>
+                            <i class="fas fa-shield-alt"></i> Enable DNSSEC for Selected
+                        </button>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i> 
+                            DNSSEC is free and won't affect existing functionality
+                        </small>
+                    </div>
+                </div>
+            `;
+            
+            resultsHtml += `
+                <div class="table-responsive">
+                    <table class="table table-striped" id="dnssecTable">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
+                                <th>Domain</th>
+                                <th>Recommendation</th>
+                                <th>Activity Level</th>
+                                <th>Plan</th>
+                                <th>DNS Records</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            zones.forEach(function(zone) {
+                let recommendationBadge = '';
+                switch(zone.dnssec_recommendation) {
+                    case 'Highly Recommended':
+                        recommendationBadge = '<span class="badge bg-success">Highly Recommended</span>';
+                        break;
+                    case 'Recommended':
+                        recommendationBadge = '<span class="badge bg-info">Recommended</span>';
+                        break;
+                    case 'Consider':
+                        recommendationBadge = '<span class="badge bg-warning">Consider</span>';
+                        break;
+                    default:
+                        recommendationBadge = '<span class="badge bg-secondary">Optional</span>';
+                }
+                
+                let activityBadge = '';
+                switch(zone.dns_activity_level) {
+                    case 'High':
+                        activityBadge = '<span class="badge bg-success">High</span>';
+                        break;
+                    case 'Medium':
+                        activityBadge = '<span class="badge bg-info">Medium</span>';
+                        break;
+                    case 'Low':
+                        activityBadge = '<span class="badge bg-warning">Low</span>';
+                        break;
+                    default:
+                        activityBadge = '<span class="badge bg-secondary">Minimal</span>';
+                }
+                
+                let recordTypes = zone.active_record_types ? zone.active_record_types.join(', ') : 'None';
+                
+                resultsHtml += `
+                    <tr data-zone-id="${zone.id}" data-recommendation="${zone.dnssec_recommendation}">
+                        <td>
+                            <input type="checkbox" class="zone-checkbox" value="${zone.id}" onchange="updateSelectedCount()">
+                        </td>
+                        <td><strong>${zone.name}</strong></td>
+                        <td>${recommendationBadge}</td>
+                        <td>${activityBadge}</td>
+                        <td>${zone.plan_name || 'N/A'}</td>
+                        <td><small>${recordTypes}</small></td>
+                        <td>
+                            <a href="https://dash.cloudflare.com/${zone.account_id}/${zone.name}/ssl-tls/edge-certificates" 
+                               target="_blank" class="btn btn-sm btn-outline-primary" title="Enable DNSSEC in Cloudflare">
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            resultsHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        } else {
+            resultsHtml += `
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>All Good!</h6>
+                    <p class="mb-0">All your zones have DNSSEC enabled.</p>
+                </div>
+            `;
+        }
+        
+        // Replace card content with results
+        $('.card-body').html(resultsHtml);
+        $('.card-header h5').html('<i class="fas fa-shield-alt me-2"></i>DNSSEC Check Results');
+    }
+    
+    function showError(errorMessage) {
+        clearInterval(progressInterval);
+        
+        $('.card-body').html(`
+            <div class="alert alert-danger">
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>Error</h6>
+                <p class="mb-3">${errorMessage}</p>
+                <a href="/" class="btn btn-primary">Return to Dashboard</a>
+            </div>
+        `);
+        $('.card-header h5').html('<i class="fas fa-exclamation-triangle me-2"></i>DNSSEC Check Failed');
+    }
+    
+    // Bulk DNSSEC functions
+    window.selectByRecommendation = function(recommendation) {
+        $(`tr[data-recommendation="${recommendation}"] .zone-checkbox`).prop('checked', true);
+        updateSelectedCount();
+    };
+    
+    window.selectAll = function() {
+        $('.zone-checkbox').prop('checked', true);
+        $('#selectAllCheckbox').prop('checked', true);
+        updateSelectedCount();
+    };
+    
+    window.toggleSelectAll = function() {
+        const selectAll = $('#selectAllCheckbox').is(':checked');
+        $('.zone-checkbox').prop('checked', selectAll);
+        updateSelectedCount();
+    };
+    
+    window.updateSelectedCount = function() {
+        const selectedCount = $('.zone-checkbox:checked').length;
+        const enableBtn = $('#enableSelected');
+        
+        if (selectedCount > 0) {
+            enableBtn.prop('disabled', false);
+            enableBtn.html(`<i class="fas fa-shield-alt"></i> Enable DNSSEC for ${selectedCount} Selected`);
+        } else {
+            enableBtn.prop('disabled', true);
+            enableBtn.html('<i class="fas fa-shield-alt"></i> Enable DNSSEC for Selected');
+        }
+        
+        // Update select all checkbox state
+        const totalCount = $('.zone-checkbox').length;
+        $('#selectAllCheckbox').prop('checked', selectedCount === totalCount);
+    };
+    
+    window.enableSelectedDNSSEC = function() {
+        const selectedZones = $('.zone-checkbox:checked').map(function() {
+            return this.value;
+        }).get();
+        
+        if (selectedZones.length === 0) {
+            alert('Please select at least one zone to enable DNSSEC.');
+            return;
+        }
+        
+        if (confirm(`Are you sure you want to enable DNSSEC for ${selectedZones.length} selected zones? This action is free and will improve security.`)) {
+            // Show progress
+            $('#enableSelected').html('<i class="fas fa-spinner fa-spin"></i> Enabling DNSSEC...').prop('disabled', true);
+            
+            $.ajax({
+                url: '/api/enable-dnssec-bulk',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    zone_ids: selectedZones
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        const successCount = response.results.success.length;
+                        const failedCount = response.results.failed.length;
+                        
+                        let message = `DNSSEC enabled for ${successCount} zones`;
+                        if (failedCount > 0) {
+                            message += ` (${failedCount} failed)`;
+                        }
+                        
+                        alert(message);
+                        
+                        // Remove successfully enabled zones from the table
+                        response.results.success.forEach(function(zone) {
+                            $(`tr[data-zone-id="${zone.zone_id}"]`).fadeOut().remove();
+                        });
+                        
+                        // Update counts
+                        updateSelectedCount();
+                        
+                        // If no zones left, show success message
+                        if ($('#dnssecTable tbody tr').length === 0) {
+                            $('.table-responsive').html(`
+                                <div class="alert alert-success text-center">
+                                    <h6><i class="fas fa-shield-alt me-2"></i>All Done!</h6>
+                                    <p class="mb-0">All selected zones now have DNSSEC enabled.</p>
+                                </div>
+                            `);
+                            $('.bg-light').hide();
+                        }
+                    } else {
+                        alert('Error: ' + response.error);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('Error enabling DNSSEC: ' + error);
+                },
+                complete: function() {
+                    $('#enableSelected').html('<i class="fas fa-shield-alt"></i> Enable DNSSEC for Selected').prop('disabled', false);
+                }
+            });
+        }
+    };
+});
+</script>
+{% endblock %}

@@ -1,0 +1,589 @@
+{% extends "base.html" %}
+
+{% block title %}<title>Domain Manager - Combined View</title>{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Search and Filter Section -->
+    <div class="card mb-4">
+        <div class="card-body p-3">
+            <!-- Domain Manager Header -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1 class="mb-0">Domain Manager</h1>
+                <div class="text-end">
+                    <button type="button" class="btn btn-primary" onclick="startSync()">
+                        <i class="fas fa-sync-alt"></i> Sync with Cloudflare
+                    </button>
+                    {% if last_sync %}
+                    <div class="small mt-1" style="color: var(--cf-orange);">
+                        Last synced: {{ last_sync | datetimeformat }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <!-- Search input will be moved to DataTables filter wrapper -->
+                    <input type="text" class="form-control d-none" id="searchInput" 
+                           placeholder="Search domains..." value="{{ search_term or '' }}">
+                </div>
+                <div class="col-md-6 text-end">
+                    <select id="statusFilter" class="form-select" style="width: auto; display: inline-block;">
+                        <option value="">All Statuses</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="paused" {% if status_filter == 'paused' %}selected{% endif %}>Paused</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Domains Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="domainsTable" class="table table-hover table-striped mb-0" style="width:100%">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="sortable">Domain</th>
+                            <th class="sortable">Status</th>
+                            <th class="sortable">Plan</th>
+                            <th class="sortable">Requests (30d)</th>
+                            <th class="sortable">Bandwidth (30d)</th>
+                            <th class="sortable">Threats (30d)</th>
+                            <th class="sortable">Last Modified</th>
+                            <th class="no-sort">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for zone in zones %}
+                        <tr data-zone-id="{{ zone.id }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <a href="https://{{ zone.name }}" target="_blank" class="text-decoration-none domain-name">
+                                        <strong>{{ zone.name }}</strong>
+                                    </a>
+                                </div>
+                            </td>
+                            <td data-order="{{ zone.status }}" class="text-end">
+                                <span class="badge badge-sm {% if zone.status == 'active' %}bg-success{% elif zone.status == 'pending' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {{ zone.status|title }}
+                                </span>
+                            </td>
+                            <td>{{ zone.plan_name }}</td>
+                            <td data-order="{{ zone.analytics_requests or 0 }}">
+                                {% if zone.analytics_requests %}{{ "{:,}".format(zone.analytics_requests) }}{% else %}N/A{% endif %}
+                            </td>
+                            <td data-order="{{ zone.analytics_bandwidth or 0 }}">
+                                {% if zone.analytics_bandwidth %}{{ "%.1f"|format(zone.analytics_bandwidth / 1024 / 1024) }} MB{% else %}N/A{% endif %}
+                            </td>
+                            <td data-order="{{ zone.analytics_threats or 0 }}">
+                                {% if zone.analytics_threats %}{{ "{:,}".format(zone.analytics_threats) }}{% else %}0{% endif %}
+                            </td>
+                            <td data-order="{% if zone.modified_on %}{{ zone.modified_on }}{% else %}0{% endif %}">
+                                {% if zone.modified_on %}{{ zone.modified_on | datetimeformat('%Y-%m-%d %H:%M') }}{% else %}N/A{% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="https://dash.cloudflare.com/{{ zone.account_id }}/{{ zone.name }}" 
+                                       target="_blank" 
+                                       class="btn btn-outline-primary"
+                                       title="Open in Cloudflare">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                    <a href="{{ url_for('zone_details', zone_id=zone.id) }}" 
+                                       class="btn btn-outline-info"
+                                       title="View Details">
+                                        <i class="fas fa-info-circle"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Sync Progress Modal -->
+    <div class="modal fade" id="syncProgressModal" tabindex="-1" aria-labelledby="syncProgressModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="syncProgressModalLabel">
+                        <i class="fas fa-sync-alt me-2"></i>Synchronizing with Cloudflare
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="sync-status mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span id="sync-status-text" class="text-themed fw-semibold">Initializing sync...</span>
+                            <span id="sync-progress-text" class="text-primary fw-bold">0%</span>
+                        </div>
+                        <div class="progress">
+                            <div id="sync-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="sync-details" class="mt-3 text-themed">
+                        <!-- Progress details will be shown here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Close (Continue in Background)
+                    </button>
+                    <button type="button" class="btn btn-danger" id="sync-cancel-btn" onclick="cancelSync()">
+                        <i class="fas fa-stop me-2"></i>Cancel Sync
+                    </button>
+                    <button type="button" class="btn btn-primary" id="sync-close-btn" data-bs-dismiss="modal" disabled style="display: none;">
+                        <i class="fas fa-check me-2"></i>Done
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Last Updated -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* DataTables sorting styling */
+.table thead th.sortable {
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+.table thead th.sortable:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.table thead th.no-sort {
+    cursor: default;
+}
+
+/* Custom sorting icons */
+.table thead th.sortable::after {
+    content: "\f0dc";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    opacity: 0.3;
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.table thead th.sorting_asc::after {
+    content: "\f0de";
+    opacity: 1;
+}
+
+.table thead th.sorting_desc::after {
+    content: "\f0dd";
+    opacity: 1;
+}
+
+/* Smaller badge styling */
+.badge-sm {
+    font-size: 0.75em;
+    padding: 0.25em 0.5em;
+}
+
+/* Brighter search placeholder text */
+.dataTables_filter input::placeholder {
+    color: #6c757d !important;
+    opacity: 1 !important;
+}
+
+.dataTables_filter input::-webkit-input-placeholder {
+    color: #6c757d !important;
+    opacity: 1 !important;
+}
+
+.dataTables_filter input::-moz-placeholder {
+    color: #6c757d !important;
+    opacity: 1 !important;
+}
+
+.dataTables_filter input:-ms-input-placeholder {
+    color: #6c757d !important;
+    opacity: 1 !important;
+}
+
+/* Align search input with Domain column */
+.dataTables_wrapper .row:first-child {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.dataTables_wrapper .row:first-child .col-md-6:first-child {
+    padding-left: 12px !important;
+}
+
+.dataTables_wrapper .row:first-child .col-md-6:last-child {
+    padding-right: 12px !important;
+}
+
+.dataTables_filter {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    text-align: left !important;
+}
+
+.dataTables_filter input {
+    margin-left: 0 !important;
+    width: 200px !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #dee2e6 !important;
+}
+
+.dataTables_length {
+    margin-right: 0 !important;
+    padding-right: 0 !important;
+    text-align: right !important;
+}
+</style>
+
+<!-- Initialize DataTable for the domains table -->
+<script>
+$(document).ready(function() {
+    // Custom sorting for status column
+    $.fn.dataTable.ext.type.order['status-pre'] = function(d) {
+        switch(d) {
+            case 'active': return 1;
+            case 'pending': return 2;
+            case 'paused': return 3;
+            default: return 4;
+        }
+    };
+
+    // Custom date sorting for ISO 8601 dates
+    $.fn.dataTable.ext.type.detect.unshift(function(data) {
+        var regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+        if (regex.test(data)) {
+            return 'iso-date';
+        }
+        return null;
+    });
+
+    $.fn.dataTable.ext.type.order['iso-date-pre'] = function(data) {
+        if (data === null || data === '' || data === 'N/A') {
+            return 0;
+        }
+        return new Date(data).getTime();
+    };
+
+    // Custom numeric sorting that handles N/A values
+    $.fn.dataTable.ext.type.order['analytics-numeric-pre'] = function(data) {
+        if (data === null || data === '' || data === 'N/A' || data === undefined) {
+            return 0;
+        }
+        // Extract numeric value from data-order attribute or parse the data
+        var numericValue = parseFloat(data);
+        return isNaN(numericValue) ? 0 : numericValue;
+    };
+
+    // Initialize DataTable with enhanced features
+    var table = $('#domainsTable').DataTable({
+        "pageLength": 25,
+        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+        "order": [[6, "desc"]], // Default sort by Last Modified column (newest first)
+        "ordering": true, // Enable sorting
+        "stateSave": true, // Remember user's settings
+        "stateDuration": 0, // Session storage only
+        "searching": true,
+        "language": {
+            "search": "_INPUT_",
+            "searchPlaceholder": "Search domains...",
+            "lengthMenu": "Show _MENU_ domains per page",
+            "zeroRecords": "No matching domains found",
+            "info": "Showing _START_ to _END_ of _TOTAL_ domains",
+            "infoEmpty": "No domains available",
+            "infoFiltered": "(filtered from _MAX_ total domains)",
+            "paginate": {
+                "first": "First",
+                "last": "Last",
+                "next": "Next",
+                "previous": "Previous"
+            }
+        },
+        "columnDefs": [
+            { "type": "string", "targets": [0, 2] }, // Domain, Plan columns
+            { "type": "status", "targets": 1 }, // Status column
+            { "type": "analytics-numeric", "targets": [3, 4, 5] }, // Analytics columns (Requests, Bandwidth, Threats)
+            { "type": "iso-date", "targets": 6 }, // Last Modified column with ISO date sorting
+            { "orderable": false, "targets": [7] } // Actions column - disable sorting for actions
+        ],
+        "dom": '<"row mb-3"<"col-sm-12 col-md-6 text-start"f><"col-sm-12 col-md-6 text-end"l>>rt<"row mt-3"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        "initComplete": function() {
+            // Move our search input into the DataTables search wrapper
+            $('.dataTables_filter').append($('#searchInput').detach());
+            
+            // Initial attachment of event handlers
+            attachEventHandlers();
+        },
+        "drawCallback": function() {
+            // Re-attach event handlers after table redraw
+            attachEventHandlers();
+        },
+        "responsive": true
+    });
+    
+    // Status filter handler
+    $('#statusFilter').on('change', function() {
+        table.column(1).search(this.value).draw();
+    });
+    
+    // Function to attach event handlers to table elements
+    function attachEventHandlers() {
+        // Event handlers for table elements can be added here if needed
+    }
+    
+    // Initial attachment of event handlers
+    attachEventHandlers();
+});
+
+
+// Global variables for sync management
+let syncProgressInterval = null;
+let backgroundSyncMonitor = null;
+let syncModal = null;
+
+// Sync functionality
+function startSync() {
+    // Show progress modal
+    syncModal = new bootstrap.Modal(document.getElementById('syncProgressModal'));
+    syncModal.show();
+    
+    // Reset progress
+    updateSyncProgress(0, 'Initializing sync...', []);
+    
+    // Start sync request
+    fetch('/sync', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Sync failed');
+        }
+    })
+    .catch(error => {
+        console.error('Sync error:', error);
+        showToast('syncErrorToast');
+        if (syncModal) {
+            syncModal.hide();
+        }
+    });
+    
+    // Start polling for progress updates
+    startProgressPolling();
+}
+
+function startProgressPolling() {
+    if (syncProgressInterval) {
+        clearInterval(syncProgressInterval);
+    }
+    
+    syncProgressInterval = setInterval(function() {
+        fetch('/api/sync/progress')
+        .then(response => response.json())
+        .then(progress => {
+            if (progress.syncing) {
+                let percentage = 0;
+                if (progress.total_zones > 0) {
+                    percentage = Math.floor(Math.min(95, (progress.zones_processed / progress.total_zones) * 100));
+                }
+                
+                let statusMsg = progress.current_phase || 'Syncing...';
+                let details = [];
+                
+                if (progress.total_zones > 0) {
+                    details.push(`${progress.zones_processed} of ${progress.total_zones} zones processed`);
+                }
+                
+                if (progress.current_zone) {
+                    details.push(`Currently syncing: ${progress.current_zone}`);
+                }
+                
+                if (progress.elapsed_seconds > 0) {
+                    let elapsed = Math.floor(progress.elapsed_seconds);
+                    details.push(`Elapsed: ${Math.floor(elapsed / 60)}:${(elapsed % 60).toString().padStart(2, '0')}`);
+                }
+                
+                updateSyncProgress(percentage, statusMsg, details);
+            } else {
+                // Sync completed
+                clearInterval(syncProgressInterval);
+                syncProgressInterval = null;
+                
+                updateSyncProgress(100, 'Sync completed successfully!', ['✅ All zones, DNS records, and Analytics synchronized']);
+                enableCloseButton();
+                
+                // Show toast if modal is not visible
+                if (!document.getElementById('syncProgressModal').classList.contains('show')) {
+                    showToast('syncCompleteToast');
+                }
+            }
+        })
+        .catch(() => {
+            // Silently fail progress updates - sync might still be running
+        });
+    }, 1000);
+}
+
+// Monitor sync in background when modal is closed
+function startBackgroundMonitoring() {
+    if (backgroundSyncMonitor) {
+        clearInterval(backgroundSyncMonitor);
+    }
+    
+    backgroundSyncMonitor = setInterval(function() {
+        fetch('/api/sync/progress')
+        .then(response => response.json())
+        .then(progress => {
+            if (!progress.syncing) {
+                // Sync completed in background
+                clearInterval(backgroundSyncMonitor);
+                backgroundSyncMonitor = null;
+                showToast('syncCompleteToast');
+            }
+        })
+        .catch(() => {
+            // Silently fail - sync might have completed
+            clearInterval(backgroundSyncMonitor);
+            backgroundSyncMonitor = null;
+        });
+    }, 2000);
+}
+
+function showToast(toastId) {
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, {
+        autohide: false // Don't auto-hide so user can see it
+    });
+    toast.show();
+}
+
+function cancelSync() {
+    if (confirm('Are you sure you want to cancel the synchronization? This will stop the current sync process.')) {
+        fetch('/api/sync/cancel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateSyncProgress(0, 'Sync cancelled by user', ['❌ Synchronization was cancelled']);
+                enableCloseButton();
+                // Clear intervals
+                if (syncProgressInterval) {
+                    clearInterval(syncProgressInterval);
+                    syncProgressInterval = null;
+                }
+                if (backgroundSyncMonitor) {
+                    clearInterval(backgroundSyncMonitor);
+                    backgroundSyncMonitor = null;
+                }
+                // Show cancelled toast
+                setTimeout(() => {
+                    showToast('syncCancelledToast');
+                    if (syncModal) {
+                        syncModal.hide();
+                    }
+                }, 1000);
+            } else {
+                console.error('Failed to cancel sync:', data.error);
+                alert('Failed to cancel sync. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error cancelling sync:', error);
+            alert('Error cancelling sync. Please try again.');
+        });
+    }
+}
+
+// Handle modal close event
+document.addEventListener('DOMContentLoaded', function() {
+    const syncModalElement = document.getElementById('syncProgressModal');
+    syncModalElement.addEventListener('hidden.bs.modal', function() {
+        // Check if sync is still running when modal is closed
+        if (syncProgressInterval) {
+            clearInterval(syncProgressInterval);
+            syncProgressInterval = null;
+            startBackgroundMonitoring();
+        }
+    });
+});
+
+
+function updateSyncProgress(percentage, statusText, details) {
+    // Update progress bar
+    const progressBar = document.getElementById('sync-progress-bar');
+    const progressText = document.getElementById('sync-progress-text');
+    const statusElement = document.getElementById('sync-status-text');
+    const detailsElement = document.getElementById('sync-details');
+    
+    progressBar.style.width = percentage + '%';
+    progressBar.setAttribute('aria-valuenow', percentage);
+    progressText.textContent = Math.floor(percentage) + '%';
+    statusElement.textContent = statusText;
+    
+    // Update details
+    if (details && details.length > 0) {
+        detailsElement.innerHTML = details.map(detail => 
+            `<div class="small text-themed-secondary mb-1">${detail}</div>`
+        ).join('');
+    }
+    
+    // Change color when complete
+    if (percentage === 100) {
+        if (statusText.includes('successfully')) {
+            progressBar.className = 'progress-bar bg-success';
+        } else if (statusText.includes('failed')) {
+            progressBar.className = 'progress-bar bg-danger';
+        }
+    }
+}
+
+function enableCloseButton() {
+    const closeBtn = document.getElementById('sync-close-btn');
+    const cancelBtn = document.getElementById('sync-cancel-btn');
+    
+    // Show the Done button, hide the Cancel button
+    closeBtn.style.display = 'inline-block';
+    closeBtn.disabled = false;
+    
+    if (cancelBtn) {
+        cancelBtn.style.display = 'none';
+    }
+}
+
+// Placeholder functions for DNS record management
+function editDnsRecord(zoneId, recordId) {
+    // Implement edit functionality
+    alert(`Edit DNS record ${recordId} for zone ${zoneId}`);
+}
+
+function addDnsRecord(zoneId) {
+    // Implement add functionality
+    alert(`Add new DNS record for zone ${zoneId}`);
+}
+</script>
+{% endblock %}

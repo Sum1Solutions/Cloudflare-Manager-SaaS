@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}{{ zone.name }} - Zone Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-themed">{{ zone.name }}</h1>
+        <div>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Domains
+            </a>
+        </div>
+    </div>
+
+    <!-- Zone Details Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Zone Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <th>Zone ID</th>
+                                <td>{{ zone.id }}</td>
+                            </tr>
+                            <tr>
+                                <th>Status</th>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if zone.status == 'active' else 'warning' if zone.status == 'pending' else 'danger' }}">
+                                        {{ zone.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Plan</th>
+                                <td>{{ zone.plan_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Created On</th>
+                                <td>{{ zone.created_on }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <th>Type</th>
+                                <td>{{ zone.type }}</td>
+                            </tr>
+                            <tr>
+                                <th>Name Servers</th>
+                                <td>{{ zone.name_servers }}</td>
+                            </tr>
+                            <tr>
+                                <th>Original Name Servers</th>
+                                <td>{{ zone.original_name_servers }}</td>
+                            </tr>
+                            <tr>
+                                <th>Last Modified</th>
+                                <td>{{ zone.modified_on }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DNS Records Card -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">DNS Records</h5>
+            <a href="https://dash.cloudflare.com/{{ zone.account_id }}/{{ zone.name }}/dns/records" 
+               target="_blank" 
+               class="btn btn-sm btn-success"
+               title="Add DNS Record in Cloudflare">
+                <i class="fas fa-plus"></i> Add DNS Record
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Type</th>
+                            <th>Name</th>
+                            <th>Content</th>
+                            <th>TTL</th>
+                            <th>Proxied</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in dns_records %}
+                        <tr>
+                            <td><span class="badge bg-info">{{ record.type }}</span></td>
+                            <td>{{ record.name }}</td>
+                            <td>{{ record.content }}</td>
+                            <td>{{ record.ttl }}</td>
+                            <td>
+                                {% if record.proxied %}
+                                <i class="fas fa-check text-success"></i>
+                                {% else %}
+                                <i class="fas fa-times text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="editDnsRecord('{{ zone.id }}', '{{ record.id }}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-3 text-themed-muted">No DNS records found for this domain.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Placeholder functions for DNS record management
+    function editDnsRecord(zoneId, recordId) {
+        // TODO: Implement DNS record editing
+        alert(`Edit DNS record ${recordId} for zone ${zoneId}`);
+    }
+
+    function addDnsRecord(zoneId) {
+        // TODO: Implement adding a new DNS record
+        alert(`Add new DNS record for zone ${zoneId}`);
+    }
+</script>
+{% endblock %}

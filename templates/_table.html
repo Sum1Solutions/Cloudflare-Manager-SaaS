@@ -1,0 +1,81 @@
+<!-- _table.html -->
+<!--
+This partial template is responsible for displaying a table of Cloudflare zones.
+It accepts a list of zones as its context and renders each zone as a row in the table.
+-->
+
+<!-- Embedding styles for the table -->
+<style>
+    /* Center the container in the viewport */
+    .container {
+        display: flex;
+        justify-content: center;
+    }
+
+    /* Apply specific styles to the DataTable */
+    #zonesTable {
+        width: 100%;
+        /* This ensures the table takes the full width of its container */
+    }
+</style>
+
+<!-- _table.html -->
+
+
+
+<!-- Existing table structure remains unchanged -->
+<!-- ... Rest of your table code ... -->
+
+
+<!-- Table to display Cloudflare zones -->
+<div class="container mt-3">
+    <!-- "Save to Database" Button Container -->
+    <div class="d-flex justify-content-center mt-3 mb-3">
+        <!-- Form to trigger the save_to_db route when the button is clicked -->
+        <form action="/save_to_db" method="post">
+            <button type="submit" class="btn btn-primary">Save to Database</button>
+        </form>
+    </div>
+
+    <table id="zonesTable" class="display" style="width:100%;">
+        <thead>
+            <tr>
+                <!-- The primary domain of the Cloudflare zone -->
+                <th>Domain</th>
+                <!-- The operational status of the zone (e.g., "active", "paused", "pending") -->
+                <th>Status</th>
+                <!-- Type of domain. Full zones proxy all traffic through Cloudflare; partial zones only the traffic specified -->
+                <th>Type</th>
+                <!-- The subscription plan level (e.g., "free", "pro", "business") -->
+                <th>Plan</th>
+                <!-- Cloudflare-assigned nameservers for this zone -->
+                <th>Name Servers</th>
+                <!-- Original nameservers, before switching to Cloudflare -->
+                <th>Original Name Servers</th>
+                <!-- Date and time the zone was added to Cloudflare -->
+                <th>Created On</th>
+                <!-- Date and time of the last modification to the zone -->
+                <th>Modified On</th>
+                <!-- A button to navigate to Cloudflare for further adjustments -->
+                <th>Adjust</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for zone in zones %}
+            <tr>
+                <td>{{ zone.name or 'N/A' }}</td>
+                <td>{{ zone.status or 'N/A' }}</td>
+                <td>{{ zone.type or 'N/A' }}</td>
+                <td>{{ zone.plan.name if zone.plan else 'N/A' }}</td>
+                <td>{{ zone.name_servers or 'N/A' }}</td>
+                <td>{{ zone.original_name_servers or 'N/A' }}</td>
+                <td>{{ zone.created_on or 'N/A' }}</td>
+                <td>{{ zone.modified_on or 'N/A' }}</td>
+                <!-- This button links to the Cloudflare dashboard for the specific zone, allowing for further adjustments -->
+                <td><a href="https://dash.cloudflare.com/{{ zone.id }}/{{ zone.name }}" target="_blank"
+                        class="btn btn-primary">Adjust</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

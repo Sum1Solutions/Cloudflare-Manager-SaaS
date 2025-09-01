@@ -1,0 +1,63 @@
+# Security - Credentials and API Keys
+.env
+.env.local
+.env.production
+.env.development
+*.key
+*.pem
+*.p12
+credentials.json
+secrets.json
+
+# Python
+__pycache__/
+env/
+venv/
+*.pyc
+*.pyo
+
+# Database files
+*.db
+*.sqlite*
+cloudflare_manager.db
+cloudflare_manager_preauth.db
+
+# Development files
+cc.py
+ccj.py
+PROJECT_SUMMARY.txt
+PROJECT_SUMMARY.json
+
+# Wrangler development
+.wrangler/
+wrangler.log
+.dev.vars
+*_cookies.txt
+pages-migration/*_cookies.txt
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test files
+test_*.py
+*_test.py
+coverage.xml
+htmlcov/

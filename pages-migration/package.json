@@ -1,0 +1,22 @@
+{
+  "name": "cloudflare-manager-pages",
+  "version": "2.1.0",
+  "description": "Cloudflare Manager running on Cloudflare Pages + D1 with security enhancements",
+  "scripts": {
+    "dev": "wrangler pages dev public/",
+    "deploy": "wrangler pages deploy public/",
+    "db:create": "wrangler d1 create cloudflare-manager-db",
+    "db:migrate": "wrangler d1 execute cloudflare-manager-db --file=./schema.sql",
+    "db:query": "wrangler d1 execute cloudflare-manager-db --command",
+    "logs": "wrangler pages deployment tail"
+  },
+  "keywords": ["cloudflare", "dns", "domain-management", "pages", "d1"],
+  "author": "Cloudflare Manager",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.78.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

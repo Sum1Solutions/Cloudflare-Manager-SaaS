@@ -1,0 +1,27 @@
+<!-- Pending URLs Template -->
+{% extends "base.html" %}
+
+<!-- Setting the page title -->
+{% block title %}
+<title>Pending URLs</title>
+{% endblock %}
+
+<!-- Main content for this page -->
+{% block content %}
+<div class="container mt-3">
+    <!-- Including the common table structure for displaying URLs -->
+    {% include '_table.html' %}
+</div>
+{% endblock %}
+
+<!-- Scripts specific to this page -->
+{% block scripts %}
+<script>
+    // Initializing the DataTable with specific settings for this page
+    $(document).ready(function() {
+        $('#zonesTable').DataTable({
+            "pageLength": 50 // Display 50 rows by default
+        });
+    });
+</script>
+{% endblock %}

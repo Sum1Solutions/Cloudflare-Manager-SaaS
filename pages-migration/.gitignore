@@ -1,0 +1,16 @@
+# Wrangler development files
+.wrangler/
+*.log
+
+# Test cookie files
+cookies*.txt
+*test*.txt
+
+# Node modules
+node_modules/
+
+# Environment variables
+.dev.vars
+
+# Development databases
+*.sqlite*

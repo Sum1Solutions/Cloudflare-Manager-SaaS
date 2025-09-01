@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Zones Table -->
+<div class="container mt-3">
+    {% include '_table.html' %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- DataTable Initialization -->
+<script>
+    $(document).ready(function() {
+        $('#zonesTable').DataTable({
+            "pageLength": 50 // Display 50 rows by default
+        });
+    });
+</script>
+{% endblock %}

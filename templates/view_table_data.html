@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}<title>{{ table_name|title }} Table Data - Cloudflare Manager</title>{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-themed">
+            <i class="fas fa-table text-muted me-2"></i>
+            {{ table_name|title }} Table Data
+        </h1>
+        <div>
+            <a href="{{ url_for('view_db') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Database Overview
+            </a>
+        </div>
+    </div>
+
+    <!-- Table Info Card -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle text-info me-2"></i>
+                        <div>
+                            <small class="text-muted">Total Records</small>
+                            <div class="fw-bold">{{ "{:,}".format(data|length) }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-columns text-success me-2"></i>
+                        <div>
+                            <small class="text-muted">Columns</small>
+                            <div class="fw-bold">{{ columns|length }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-database text-primary me-2"></i>
+                        <div>
+                            <small class="text-muted">Table</small>
+                            <div class="fw-bold"><code>{{ table_name }}</code></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Table Card -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>
+                Table Data
+                {% if data|length == 0 %}
+                <span class="badge bg-warning ms-2">Empty</span>
+                {% endif %}
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if data|length > 0 %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0" id="{{ table_name }}Table">
+                    <thead class="table-light">
+                        <tr>
+                            {% for column in columns %}
+                                <th class="sortable">{{ column.name }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in data %}
+                            <tr>
+                                {% for value in row %}
+                                    <td>
+                                        {% if value is none %}
+                                            <span class="text-muted fst-italic">NULL</span>
+                                        {% elif value == '' %}
+                                            <span class="text-muted fst-italic">Empty</span>
+                                        {% elif value|string|length > 100 %}
+                                            <span title="{{ value }}">{{ value|string|truncate(100) }}</span>
+                                        {% else %}
+                                            {{ value }}
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No Data Available</h5>
+                <p class="text-muted">This table is currently empty.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* DataTables sorting styling */
+.table thead th.sortable {
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+.table thead th.sortable:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Custom sorting icons */
+.table thead th.sortable::after {
+    content: "\f0dc";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    opacity: 0.3;
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.table thead th.sorting_asc::after {
+    content: "\f0de";
+    opacity: 1;
+}
+
+.table thead th.sorting_desc::after {
+    content: "\f0dd";
+    opacity: 1;
+}
+</style>
+
+{% if data|length > 0 %}
+<script>
+$(document).ready(function() {
+    $('#{{ table_name }}Table').DataTable({
+        "pageLength": 50,
+        "lengthMenu": [[25, 50, 100, -1], [25, 50, 100, "All"]],
+        "order": [], // No default sorting
+        "ordering": true,
+        "stateSave": true,
+        "stateDuration": 0,
+        "searching": true,
+        "language": {
+            "search": "_INPUT_",
+            "searchPlaceholder": "Search {{ table_name }} data...",
+            "lengthMenu": "Show _MENU_ records per page",
+            "zeroRecords": "No matching records found",
+            "info": "Showing _START_ to _END_ of _TOTAL_ records",
+            "infoEmpty": "No records available",
+            "infoFiltered": "(filtered from _MAX_ total records)",
+            "paginate": {
+                "first": "First",
+                "last": "Last",
+                "next": "Next",
+                "previous": "Previous"
+            }
+        },
+        "dom": '<"row mb-3"<"col-sm-12 col-md-6 text-start"f><"col-sm-12 col-md-6 text-end"l>>rt<"row mt-3"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        "responsive": true,
+        "scrollX": true
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

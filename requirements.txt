@@ -1,0 +1,31 @@
+# Core Flask framework - updated for security
+Flask==3.0.0
+
+# HTTP requests library - SECURITY UPDATE
+requests==2.32.4
+
+# Environment variable management
+python-dotenv==1.0.0
+
+# Testing Dependencies
+pytest==7.4.3
+pytest-flask==1.3.0
+pytest-mock==3.12.0
+
+# Flask dependencies - SECURITY UPDATES
+click==8.1.7
+itsdangerous==2.1.2
+Jinja2==3.1.6
+MarkupSafe==2.1.3
+Werkzeug==3.0.6
+
+# HTTP and SSL libraries - SECURITY UPDATES
+certifi==2024.7.4
+urllib3==2.5.0
+charset-normalizer==3.3.2
+idna==3.7
+blinker==1.7.0
+
+# Auth0 Integration
+authlib==1.6.3
+cryptography==45.0.6
