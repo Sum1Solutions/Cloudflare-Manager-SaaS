@@ -2,13 +2,13 @@
 
 ## Project Overview
 
-Cloudflare Manager is an **opensource** web application designed for agencies, developers, and businesses managing multiple Cloudflare zones (domains). Available in two architectures: **Flask + SQLite** (traditional) and **Cloudflare Pages + D1** (serverless). Both versions provide advanced management capabilities with synchronized databases, analytics, and modern UI features.
+Cloudflare Manager is an opensource web application for managing multiple Cloudflare zones (domains). Available in two architectures: **Flask + SQLite** (traditional) and **Cloudflare Pages + D1** (serverless). Both versions provide management capabilities with synchronized databases, analytics, and modern UI features.
 
-### Opensource Development
+### Development Status
 - **Repository**: MIT licensed opensource project
-- **Alpha Testing**: Production-tested at Sum1Solutions with 400+ domains
-- **Community Driven**: Contributions welcome from the Cloudflare community
-- **Enterprise Ready**: Scales from single users to large agencies
+- **Testing**: Tested with multiple domains in real environments
+- **Community**: Contributions welcome from developers
+- **Scalability**: Works with single domains or multiple domains
 
 ## Dual Architecture Support
 
@@ -295,14 +295,14 @@ CREATE TABLE dns_records (
 
 ### Phase 1: Core Stability (Current)
 - ✅ **Configurable Authentication**: Auth0 and Cloudflare Access support
-- ✅ **Production Testing**: 400+ domain alpha testing at Sum1Solutions
+- ✅ **Testing**: Multi-domain testing in real environments
 - ✅ **Documentation**: Comprehensive setup and deployment guides
 - 🔄 **Community Setup**: Issues tracking, contribution guidelines, code of conduct
 
 ### Phase 2: Advanced Features (Q2 2025)
 - **DNS Record Editing**: In-app DNS record management with validation
 - **Zone Settings Management**: Cloudflare zone configuration through UI
-- **Advanced Filtering**: Custom filters for large domain counts (1000+)
+- **Advanced Filtering**: Custom filters for larger domain counts
 - **API Key Management**: Support for scoped API tokens
 - **Docker Support**: Containerized deployment options
 
@@ -321,7 +321,7 @@ CREATE TABLE dns_records (
 - **Advanced Analytics**: Custom dashboards and reporting
 
 ### Community Contributions Wanted
-- **Performance Optimization**: Testing with 1000+ domains
+- **Performance Optimization**: Testing with larger domain counts
 - **Internationalization**: Multi-language support
 - **Theme Development**: Additional UI themes and customizations
 - **Plugin Architecture**: Extensible plugin system

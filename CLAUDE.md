@@ -4,23 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Cloudflare Manager is an **opensource** web application designed for agencies, developers, and businesses managing multiple Cloudflare zones (domains). Available in two architectures: **Flask + SQLite** (traditional) and **Cloudflare Pages + D1** (serverless). Both provide advanced interfaces for managing multiple domains with synchronized databases, analytics, and modern UI features.
+Cloudflare Manager is an opensource web application for managing multiple Cloudflare zones (domains). Available in two architectures: **Flask + SQLite** (traditional) and **Cloudflare Pages + D1** (serverless). Both provide interfaces for managing multiple domains with synchronized databases, analytics, and modern UI features.
 
-**Alpha Testing**: Currently being production-tested at Sum1Solutions with 400+ domains. The opensource community is welcome to contribute and use this tool for their own domain management needs.
+**Status**: This tool has been tested with multiple domains in real environments. The opensource community is welcome to contribute and use this tool for their own domain management needs.
 
 ## Current Enhanced Features
 
 ### Recent Major Enhancements (v2.2)
 - **Configurable Authentication**: Choose between Auth0 OAuth or Cloudflare Access zero-trust authentication
 - **Enterprise Authentication**: Professional authentication system supporting multiple auth methods
-- **Production Testing**: Real-world testing with 400+ domains for scalability and reliability
+- **Testing**: Real-world testing with multiple domains
 - **Enhanced Dashboard**: Compact analytics overview with 4-card summary at page top
 - **Prominent Search Interface**: Left-aligned, enhanced search box with modern styling and animations
 - **Database Administration Panel**: Dual-view interface with Tables/Schema toggle and detailed column specs
 - **Improved Navigation**: Consistent logout button alignment and better responsive navbar
 - **Advanced DataTables**: 8-column search layout, wider dropdown menus, better pagination support
 - **Schema Explorer**: Detailed database schema viewer with column types, constraints, and keys
-- **Full Pagination Support**: Handles 399+ domains with proper API pagination and real-time sync
+- **Pagination Support**: Handles multiple domains with proper API pagination and real-time sync
 - **Pages + D1 Migration**: Complete serverless version with Cloudflare Pages Functions and D1 database
 - **GraphQL Analytics Integration**: Migrated from deprecated REST API to GraphQL for accurate analytics data
 - **Background Sync Operations**: Async sync with cancellation support and toast notifications  
@@ -146,7 +146,7 @@ The application uses Auth0 for enterprise-grade authentication:
 
 #### Multi-Domain Setup
 Single Auth0 application handles multiple domains:
-- sum1solutions.com (admin portal)
+- yourdomain.com (example domain)
 - cloudflaremanager.com (domain management)
 - Additional domains as needed
 

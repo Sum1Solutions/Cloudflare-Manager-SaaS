@@ -1,8 +1,8 @@
 # Cloudflare Manager
 
-An opensource web application for managing multiple Cloudflare zones (domains) and their DNS records. Perfect for agencies, developers, and businesses managing dozens or hundreds of domains. Available in two deployment architectures: **Flask + SQLite** (traditional) and **Cloudflare Pages + D1** (serverless).
+A web application for managing multiple Cloudflare zones (domains) and their DNS records. Useful for developers and small agencies managing multiple domains. Available in two versions: **Flask + SQLite** (traditional) and **Cloudflare Pages + D1** (serverless).
 
-> **Alpha Testing**: This project is being alpha tested at [Sum1Solutions](https://sum1solutions.com) with 400+ production domains. Community contributions and feedback welcome!
+> **Note**: This is a working tool that's been used with multiple domains in real environments, but it's still evolving. Test thoroughly in your own environment before relying on it.
 
 ## 🚀 Deployment Options
 
@@ -38,7 +38,7 @@ An opensource web application for managing multiple Cloudflare zones (domains) a
 - **Configurable Authentication**: Choose between Auth0 OAuth or Cloudflare Access zero-trust authentication
 - **Export Capabilities**: CSV export for domain listings and analytics
 - **Responsive Design**: Bootstrap 5 with mobile-first approach
-- **Enterprise Ready**: Production-tested with 400+ domains at scale
+- **Tested**: Used with multiple domains in development and real environments
 
 ## Screenshots
 
@@ -305,7 +305,7 @@ flask run --debug
 
 ### Alpha Testing
 
-This project is currently being alpha tested with 400+ production domains at Sum1Solutions. Real-world feedback helps us identify scaling issues and improve the user experience.
+This project has been tested with multiple domains in real environments. Community feedback helps identify issues and improve the tool.
 
 ## License
 
@@ -345,7 +345,7 @@ This application supports two authentication methods:
 
 ## Acknowledgements
 
-- **Sum1Solutions**: Alpha testing with 400+ production domains
+- **Community**: Contributors and testers
 - **Cloudflare**: For their excellent API and services
 - **Auth0**: For robust authentication infrastructure
 - **Bootstrap Team**: For responsive UI components
