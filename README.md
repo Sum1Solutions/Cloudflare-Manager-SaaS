@@ -345,3 +345,5 @@ This application supports two authentication methods:
 - **Auth0**: For robust authentication infrastructure
 - **Bootstrap Team**: For responsive UI components
 - **Flask Community**: For the excellent web framework
+
+- **AND CLAUDE & WINDSURF, without whom this would not exist (or potentially destroy your site(s) - use at your own risk, like I do!
